@@ -16,19 +16,19 @@ type Cache interface {
 	Delete(context.Context, string) error
 	SetTTL(context.Context, string, time.Duration) error
 	GetTTL(context.Context, string) (time.Duration, error)
-	Exists(string) (bool, error)
-	Clear() error
-	Close()
+	Exists(context.Context, string) (bool, error)
+	Clear(context.Context) error
+	Close() error
 	Description() string
 }
 
-func NewCache(cacheType string) Cache {
+func NewCache(cacheType string) (Cache, error) {
 	switch cacheType {
 	case INMEMORYCACHE:
-		return NewInMemoryCache()
+		return NewInMemoryCache(), nil
 	case REDISCACHE:
-		return nil
+		return NewRedisCache("", "", 0)
 	default:
-		return NewDummyCache()
+		return NewDummyCache(), nil
 	}
 }

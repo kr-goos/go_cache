@@ -11,46 +11,50 @@ type cacheItem struct {
 	expiry time.Time
 }
 
-type inMemoryCache struct {
+type InMemoryCache struct {
 	items map[string]*cacheItem
 	mtx   sync.RWMutex
 }
 
-func NewInMemoryCache() *inMemoryCache {
-	return &inMemoryCache{
+func NewInMemoryCache() *InMemoryCache {
+	return &InMemoryCache{
 		items: make(map[string]*cacheItem),
 	}
 }
 
-func (c *inMemoryCache) get(key string) (any, error) {
+func (c *InMemoryCache) Get(_ context.Context, key string) (any, error) {
 	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-
 	item, exists := c.items[key]
 	if !exists {
+		c.mtx.RUnlock()
 		return nil, ErrKeyNotFound
 	}
+
 	if item.expiry.Before(time.Now()) {
+		c.mtx.RUnlock()
+		c.mtx.Lock()
 		delete(c.items, key)
+		c.mtx.Unlock()
 		return nil, ErrKeyExpired
 	}
+	c.mtx.RUnlock()
 	return item.value, nil
 }
 
-func (c *inMemoryCache) set(key string, value any, ttl time.Duration) error {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+func (c *InMemoryCache) Set(_ context.Context, key string, value any, ttl time.Duration) error {
 
 	expiry := time.Now().Add(ttl)
 	item := &cacheItem{
 		value:  value,
 		expiry: expiry,
 	}
+	c.mtx.Lock()
 	c.items[key] = item
+	c.mtx.Unlock()
 	return nil
 }
 
-func (c *inMemoryCache) delete(key string) error {
+func (c *InMemoryCache) Delete(_ context.Context, key string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -58,7 +62,7 @@ func (c *inMemoryCache) delete(key string) error {
 	return nil
 }
 
-func (c *inMemoryCache) setTTL(key string, ttl time.Duration) error {
+func (c *InMemoryCache) SetTTL(_ context.Context, key string, ttl time.Duration) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -70,7 +74,7 @@ func (c *inMemoryCache) setTTL(key string, ttl time.Duration) error {
 	return nil
 }
 
-func (c *inMemoryCache) getTTL(key string) (time.Duration, error) {
+func (c *InMemoryCache) GetTTL(_ context.Context, key string) (time.Duration, error) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -82,94 +86,7 @@ func (c *inMemoryCache) getTTL(key string) (time.Duration, error) {
 	return ttl, nil
 }
 
-func (c *inMemoryCache) Get(ctx context.Context, key string) (any, error) {
-	done := make(chan struct{})
-	var result any
-	var err error
-
-	go func() {
-		result, err = c.get(key)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-done:
-		return result, err
-	}
-}
-
-func (c *inMemoryCache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
-	done := make(chan struct{})
-	var err error
-
-	go func() {
-		err = c.set(key, value, ttl)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-done:
-		return err
-	}
-}
-
-func (c *inMemoryCache) Delete(ctx context.Context, key string) error {
-	done := make(chan struct{})
-	var err error
-
-	go func() {
-		err = c.delete(key)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-done:
-		return err
-	}
-}
-
-func (c *inMemoryCache) SetTTL(ctx context.Context, key string, ttl time.Duration) error {
-	done := make(chan struct{})
-	var err error
-
-	go func() {
-		err = c.setTTL(key, ttl)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-done:
-		return err
-	}
-}
-
-func (c *inMemoryCache) GetTTL(ctx context.Context, key string) (time.Duration, error) {
-	done := make(chan struct{})
-	var ttl time.Duration
-	var err error
-
-	go func() {
-		ttl, err = c.getTTL(key)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	case <-done:
-		return ttl, err
-	}
-}
-
-func (c *inMemoryCache) Exists(key string) (bool, error) {
+func (c *InMemoryCache) Exists(_ context.Context, key string) (bool, error) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -177,7 +94,7 @@ func (c *inMemoryCache) Exists(key string) (bool, error) {
 	return exists, nil
 }
 
-func (c *inMemoryCache) Clear() error {
+func (c *InMemoryCache) Clear(_ context.Context) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -185,13 +102,8 @@ func (c *inMemoryCache) Clear() error {
 	return nil
 }
 
-func (c *inMemoryCache) Close() {
-	// c.mtx.Lock()
-	// defer c.mtx.Unlock()
+func (c *InMemoryCache) Close() error { return nil }
 
-	// c.items = make(map[string]*cacheItem)
-}
-
-func (c *inMemoryCache) Description() string {
+func (c *InMemoryCache) Description() string {
 	return "InMemoryCache: A simple in-memory cache implementation"
 }
