@@ -1,1 +1,4 @@
 .vscode
+
+./cmd/cache/cache
+./cmd/webserver/webserver
