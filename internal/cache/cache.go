@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	INMEMORYCACHE = "m"
-	REDISCACHE    = "r"
+	INMEMORYCACHE = "memory"
+	REDISCACHE    = "redis"
+	DUMMYCACHE    = "dummy"
 )
 
 type Cache interface {
@@ -22,12 +23,12 @@ type Cache interface {
 	Description() string
 }
 
-func NewCache(cacheType string) (Cache, error) {
+func NewCache(cacheType string, addr, password string, db int) (Cache, error) {
 	switch cacheType {
 	case INMEMORYCACHE:
 		return NewInMemoryCache(), nil
 	case REDISCACHE:
-		return NewRedisCache("", "", 0)
+		return NewRedisCache(addr, password, db)
 	default:
 		return NewDummyCache(), nil
 	}

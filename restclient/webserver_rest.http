@@ -1,0 +1,24 @@
+@serverPath=http://localhost:8080
+
+### setcache
+POST {{serverPath}}/setcache
+content-type: application/json
+
+{
+  "cacheType": "redis",
+  "addr": "localhost:6379",
+  "password": "",
+  "db": 0
+}
+
+### set
+GET {{serverPath}}/set?key=your_key&value=your_value&ttl=5s"
+
+### get
+GET {{serverPath}}/get?key=your_key"
+
+### delete
+GET {{serverPath}}/delete?key=your_key"
+
+### description
+GET {{serverPath}}/description

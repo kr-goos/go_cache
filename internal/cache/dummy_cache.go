@@ -31,15 +31,15 @@ func (c *dummyCache) GetTTL(ctx context.Context, key string) (time.Duration, err
 	return 0, nil
 }
 
-func (c *dummyCache) Exists(key string) (bool, error) {
+func (c *dummyCache) Exists(ctx context.Context, key string) (bool, error) {
 	return false, nil
 }
 
-func (c *dummyCache) Clear() error {
+func (c *dummyCache) Clear(ctx context.Context) error {
 	return nil
 }
 
-func (c *dummyCache) Close() {}
+func (c *dummyCache) Close() error { return nil }
 
 func (c *dummyCache) Description() string {
 	return "DummyCache: A dummy cache implementation that does nothing"
